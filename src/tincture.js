@@ -26,19 +26,19 @@ function tincture(color, options) {
 			break;
 		case "HEX":
 			this.hasAlpha = false;
-			this.rgb = this.HEXToRGB(color, true);
+			this.rgb = this._HEXToRGB(color, true);
 			break;
 		case "HEXA":
 			this.hasAlpha = true;
-			this.rgb = this.HEXAToRGBA(color, true);
+			this.rgb = this._HEXAToRGBA(color, true);
 			break;
 		case "HSL":
 			this.hasAlpha = false;
-			this.rgb = this.HSLToRGB(color, true);
+			this.rgb = this._HSLToRGB(color, true);
 			break;
 		case "HSLA":
 			this.hasAlpha = true;
-			this.rgb = this.HSLAToRGBA(color, true);
+			this.rgb = this._HSLAToRGBA(color, true);
 			break;
 		default:
 			console.error("Invalid input color: " + color);
@@ -46,11 +46,11 @@ function tincture(color, options) {
 	}
 
 	if (this.hasAlpha) {
-		this.hex = this.RGBAToHEXA(this.RGBObjToRGBString(this.rgb), true);
-		this.hsl = this.RGBAToHSLA(this.RGBObjToRGBString(this.rgb), true);
+		this.hex = this._RGBAToHEXA(this.RGBObjToRGBString(this.rgb), true);
+		this.hsl = this._RGBAToHSLA(this.RGBObjToRGBString(this.rgb), true);
 	} else {
-		this.hex = this.RGBToHEX(this.RGBObjToRGBString(this.rgb), true);
-		this.hsl = this.RGBToHSL(this.RGBObjToRGBString(this.rgb), true);
+		this.hex = this._RGBToHEX(this.RGBObjToRGBString(this.rgb), true);
+		this.hsl = this._RGBToHSL(this.RGBObjToRGBString(this.rgb), true);
 	}
 }
 
@@ -200,6 +200,7 @@ tincture.prototype = {
 	},
 
 	getFormat: function(color) {
+		color = color ? color : this._original;
 		if (
 			color.hasOwnProperty("r") &&
 			color.hasOwnProperty("g") &&
@@ -256,7 +257,7 @@ tincture.prototype = {
 		return;
 	},
 
-	HEXToRGB: function(color, returnObj) {
+	_HEXToRGB: function(color, returnObj) {
 		if (this.isHEX(color)) {
 			let r = 0,
 				g = 0,
@@ -282,18 +283,18 @@ tincture.prototype = {
 		}
 	},
 
-	HEXToHSL: function(color, returnObj) {
+	_HEXToHSL: function(color, returnObj) {
 		returnObj = returnObj === true;
 		if (this.isHEX(color)) {
-			color = this.HEXToRGB(color);
-			return this.RGBToHSL(color, returnObj);
+			color = this._HEXToRGB(color);
+			return this._RGBToHSL(color, returnObj);
 		} else {
 			console.error("Invalid input color: " + color);
 			return;
 		}
 	},
 
-	HEXAToRGBA: function(color, returnObj) {
+	_HEXAToRGBA: function(color, returnObj) {
 		returnObj = returnObj === true;
 		if (this.isHEXA(color)) {
 			let r = 0,
@@ -326,18 +327,18 @@ tincture.prototype = {
 		}
 	},
 
-	HEXAToHSLA: function(color, returnObj) {
+	_HEXAToHSLA: function(color, returnObj) {
 		returnObj = returnObj === true;
 		if (this.isHEXA(color)) {
-			color = this.HEXAToRGBA(color);
-			return this.RGBAToHSLA(color, returnObj);
+			color = this._HEXAToRGBA(color);
+			return this._RGBAToHSLA(color, returnObj);
 		} else {
 			console.error("Invalid input color: " + color);
 			return;
 		}
 	},
 
-	HSLToRGB: function(color, returnObj) {
+	_HSLToRGB: function(color, returnObj) {
 		returnObj = returnObj === true;
 		if (this.isHSLString(color)) {
 			let sep = color.indexOf(",") > -1 ? "," : " ";
@@ -406,17 +407,17 @@ tincture.prototype = {
 		}
 	},
 
-	HSLToHEX: function(color) {
+	_HSLToHEX: function(color) {
 		if (this.isHSLString(color)) {
-			color = this.HSLToRGB(color);
-			return this.RGBToHEX(color);
+			color = this._HSLToRGB(color);
+			return this._RGBToHEX(color);
 		} else {
 			console.error("Invalid input color: " + color);
 			return;
 		}
 	},
 
-	HSLAToRGBA: function(color, returnObj) {
+	_HSLAToRGBA: function(color, returnObj) {
 		returnObj = returnObj === true;
 		if (this.isHSLAString(color)) {
 			let sep = color.indexOf(",") > -1 ? "," : " ";
@@ -446,7 +447,7 @@ tincture.prototype = {
 
 			if (h >= 360) h %= 360;
 
-			let obj = this.HSLToRGB(
+			let obj = this._HSLToRGB(
 				"hsl(" + h + "," + s + "%," + l + "%)",
 				true
 			);
@@ -461,17 +462,17 @@ tincture.prototype = {
 		}
 	},
 
-	HSLAToHEXA: function(color) {
+	_HSLAToHEXA: function(color) {
 		if (this.isHSLAString(color)) {
-			color = this.HSLAToRGBA(color);
-			return this.RGBAToHEXA(color);
+			color = this._HSLAToRGBA(color);
+			return this._RGBAToHEXA(color);
 		} else {
 			console.error("Invalid input color: " + color);
 			return;
 		}
 	},
 
-	RGBToHEX: function(color) {
+	_RGBToHEX: function(color) {
 		if (this.isRGBString(color)) {
 			let sep = color.indexOf(",") > -1 ? "," : " ";
 			color = color
@@ -502,7 +503,7 @@ tincture.prototype = {
 		}
 	},
 
-	RGBToHSL: function(color, returnObj) {
+	_RGBToHSL: function(color, returnObj) {
 		returnObj = returnObj === true;
 		if (this.isRGBString(color)) {
 			let sep = color.indexOf(",") > -1 ? "," : " ";
@@ -561,7 +562,7 @@ tincture.prototype = {
 		}
 	},
 
-	RGBAToHEXA: function(color) {
+	_RGBAToHEXA: function(color) {
 		if (this.isRGBAString(color)) {
 			let sep = color.indexOf(",") > -1 ? "," : " ";
 			color = color
@@ -599,7 +600,7 @@ tincture.prototype = {
 		}
 	},
 
-	RGBAToHSLA: function(color, returnObj) {
+	_RGBAToHSLA: function(color, returnObj) {
 		returnObj = returnObj === true;
 		if (this.isRGBAString(color)) {
 			let sep = color.indexOf(",") > -1 ? "," : " ";

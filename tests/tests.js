@@ -52,9 +52,15 @@ const testColors = [
 
 for (let i = 0; i < testColors.length; i++) {
 	let testNumber = i + 1;
-	console.time("TEST " + testNumber);
-	console.log(tincture(testColors[i]));
-	console.timeEnd("TEST " + testNumber);
+	var t0 = performance.now();
+	var color = tincture(testColors[i]);
+	var t1 = performance.now();
+	var time = t1 - t0;
+	if (time > 0.5) {
+		console.error("TEST " + testNumber + " took " + time + "ms.", color);
+	} else {
+		console.log("TEST " + testNumber + " took " + time + "ms.", color);
+	}
 }
 
 console.timeEnd("TESTS");

@@ -1,5 +1,7 @@
-/*! Some ideas and inspiration, such as regular expressions, are from Jon Kantner's CSS-tricks article. https://css-tricks.com/converting-color-spaces-in-javascript/ */
-/*! Formulas for HSL conversions come from https://www.vocal.com/video/rgb-and-hsvhsihsl-color-space-conversion/ */
+/* Some ideas and inspiration, such as regular expressions, are from Jon Kantner's CSS-tricks article.
+ * https://css-tricks.com/converting-color-spaces-in-javascript/
+ * Formulas for HSL conversions come from https://www.vocal.com/video/rgb-and-hsvhsihsl-color-space-conversion/
+ */
 
 function tincture(color, options) {
 	color = color ? color : "";
@@ -667,5 +669,39 @@ tincture.prototype = {
 			console.error("Invalid input color: " + color);
 			return;
 		}
+	},
+	toColorBlindRGB: function(colorBlindnessType, rgbObj) {
+
+		rgbObj = rgbObj ? rgbObj : this.rgb;
+
+		function getChannelValue(value) {
+			return value < 0 ? 0 : value < 255 ? Math.round(value) : 255;
+		}
+		
+		const matrices = {
+			"Normal": 			[1,0,0,0,0, 0,1,0,0,0, 0,0,1,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Protanopia": 		[0.567,0.433,0,0,0, 0.558,0.442,0,0,0, 0,0.242,0.758,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Protanomaly": 		[0.817,0.183,0,0,0, 0.333,0.667,0,0,0, 0,0.125,0.875,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Deuteranopia": 	[0.625,0.375,0,0,0, 0.7,0.3,0,0,0, 0,0.3,0.7,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Deuteranomaly": 	[0.8,0.2,0,0,0, 0.258,0.742,0,0,0, 0,0.142,0.858,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Tritanopia": 		[0.95,0.05,0,0,0, 0,0.433,0.567,0,0, 0,0.475,0.525,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Tritanomaly": 		[0.967,0.033,0,0,0, 0,0.733,0.267,0,0, 0,0.183,0.817,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Achromatopsia": 	[0.299,0.587,0.114,0,0, 0.299,0.587,0.114,0,0, 0.299,0.587,0.114,0,0, 0,0,0,1,0, 0,0,0,0,1],
+			"Achromatomaly": 	[0.618,0.320,0.062,0,0, 0.163,0.775,0.062,0,0, 0.163,0.320,0.516,0,0, 0,0,0,1,0, 0,0,0,0,1]
+		}
+
+		const matrix = matrices[colorBlindnessType];
+
+		if (!rgbObj.hasOwnProperty(a)) rgbObj.a = 1;
+
+		if (rgbObj.hasOwnProperty("r") && rgbObj.hasOwnProperty("g") && rgbObj.hasOwnProperty("b") && matrix.length >= 20) {
+			const r = rgbObj.r * matrix[0] + rgbObj.g * matrix[1] + rgbObj.b * matrix[2] + rgbObj.a * matrix[3] + matrix[4];
+			const g = rgbObj.r * matrix[5] + rgbObj.g * matrix[6] + rgbObj.b * matrix[7] + rgbObj.a * matrix[8] + matrix[9];
+			const b = rgbObj.r * matrix[10] + rgbObj.g * matrix[11] + rgbObj.b * matrix[12] + rgbObj.a * matrix[13] + matrix[14];
+			const a = rgbObj.r * matrix[15] + rgbObj.g * matrix[16] + rgbObj.b * matrix[17] + rgbObj.a * matrix[18] + matrix[19];
+			return { r: getChannelValue(r), g: getChannelValue(g), b: getChannelValue(b), a: getChannelValue(a) };
+		}
+		console.error("Invalid input color: " + color);
+		return;
 	}
 };

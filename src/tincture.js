@@ -1,4 +1,5 @@
-/*! Some code, such as regular expressions, and ideas are from Jon Kantner's CSS-tricks article. https://css-tricks.com/converting-color-spaces-in-javascript/. Formulas for HSL conversions come from https://www.vocal.com/video/rgb-and-hsvhsihsl-color-space-conversion/ */
+/*! Some ideas and inspiration, such as regular expressions, are from Jon Kantner's CSS-tricks article. https://css-tricks.com/converting-color-spaces-in-javascript/ */
+/*! Formulas for HSL conversions come from https://www.vocal.com/video/rgb-and-hsvhsihsl-color-space-conversion/ */
 
 function tincture(color, options) {
 	color = color ? color : "";

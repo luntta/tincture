@@ -32,44 +32,26 @@ customElements.define(
 				}
 
 				if (name == "data-color1") {
-					let color = tincture(this.dataset.color1);
-					let colorBlindColor1 = color.toColorBlindRGB(
+					let color1 = tincture(this.dataset.color1);
+					let color2 = tincture(this.dataset.color2);
+					let colorBlindColor1 = color1.toColorBlindRGB(
 						this.dataset.colorBlindnessType
 					);
-					let colorBlindColor1String = color.RGBObjToRGBString(
+					let colorBlindColor1String = color1.RGBObjToRGBString(
 						colorBlindColor1
 					);
-					let colorBlindColorWhite = color.toColorBlindRGB(
-						this.dataset.colorBlindnessType,
-						{ r: 255, g: 255, b: 255 }
+					let colorBlindColor2 = color2.toColorBlindRGB(
+						this.dataset.colorBlindnessType
 					);
-					let colorBlindColorWhiteString = color.RGBObjToRGBString(
-						colorBlindColorWhite
+					let colorBlindColor2String = color2.RGBObjToRGBString(
+						colorBlindColor2
 					);
-					let colorBlindColorBlack = color.toColorBlindRGB(
-						this.dataset.colorBlindnessType,
-						{ r: 0, g: 0, b: 0 }
-					);
-					let colorBlindColorBlackString = color.RGBObjToRGBString(
-						colorBlindColorBlack
-					);
-					let contrastToWhite = color.getContrast(
-						colorBlindColorWhite,
+					
+					let contrast = color1.getContrast(
+						color2.rgb,
 						colorBlindColor1
 					);
-					let contrastToBlack = color.getContrast(
-						colorBlindColorBlack,
-						colorBlindColor1
-					);
-					let color2;
-					let contrast;
-					if (contrastToBlack > contrastToWhite) {
-						color2 = colorBlindColorBlackString;
-						contrast = contrastToBlack;
-					} else {
-						color2 = colorBlindColorWhiteString;
-						contrast = contrastToWhite;
-					}
+
 					let colorContainer = card.querySelector(
 						".visualization"
 					);
@@ -81,9 +63,9 @@ customElements.define(
 					);
 
 					foregroundContainer.style.color = colorBlindColor1String;
-					foregroundContainer.style.backgroundColor = color2;
+					foregroundContainer.style.backgroundColor = color2.toRgbString();
 
-					backgroundContainer.style.color = color2;
+					backgroundContainer.style.color = color2.toRgbString();
 					backgroundContainer.style.backgroundColor = colorBlindColor1String;
 					card.querySelector('.contrast__value').textContent = +contrast.toFixed(2) + ":1";
 
@@ -172,13 +154,40 @@ customElements.define(
 
 			const input = component.shadowRoot.querySelector(".test__input");
 
+			let white = tincture("#fff");
+			let black = tincture("#000000");
+			let color2;
+
 			input.addEventListener("input", function(event) {
 				let color = tincture(this.value);
 				if (color.isValid) {
+					let contrastToWhite = color.getContrast(white.rgb, color.rgb);
+					let contrastToBlack = color.getContrast(black.rgb, color.rgb);
+
+					console.log(
+						"contrasts",
+						contrastToWhite,
+						contrastToBlack
+					);
+
+					if (contrastToBlack >= contrastToWhite) {
+						color2 = black;
+					} else {
+						color2 = white;
+					}
+
+					console.log("color2", color2);
+
 					component
 						.querySelectorAll("tincture-card")
 						.forEach(function(element) {
+							element.dataset.color2 = color2.toRgbString();
 							element.dataset.color1 = color.toRgbString();
+							console.log(
+								"element.dataset.color2",
+								element.dataset
+									.color2
+							);
 						});
 				}
 			});
@@ -191,6 +200,7 @@ customElements.define(
 				const element = document.createElement("tincture-card");
 				element.dataset.colorBlindnessType = type;
 				element.dataset.title = type;
+				element.dataset.color2 = "#000000";
 				element.dataset.color1 = input.value;
 				element.setAttribute("id", "tincture-" + type);
 				element.setAttribute("slot", "cards");

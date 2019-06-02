@@ -692,12 +692,38 @@ tincture.prototype = {
 			return;
 		}
 	},
+	_correctRGBChannelValue: function (value) {
+		return value < 0 ? 0 : value < 255 ? Math.round(value) : 255;
+	},
+	deficiency: function(deficiency, rgbObj) {
+		deficiency = deficiency.toLowerCase();
+		rgbObj = rgbObj ? rgbObj : this.rgb;
+
+		let deficiencies = [
+			"protanopia",
+			"protanomaly",
+			"deuteranopia",
+			"deuteranomaly",
+			"tritanopia",
+			"tritanomaly",
+			"achromatopsia",
+			"achromatomaly"
+		];
+
+		if (deficiencies.indexOf(deficiency)) {
+			switch (deficiency) {
+				case "protanopia":
+
+					break;
+
+				default:
+					break;
+			}
+		}
+	},
 	toColorBlindRGB: function(colorBlindnessType, rgbObj) {
 		rgbObj = rgbObj ? rgbObj : this.rgb;
 
-		function getChannelValue(value) {
-			return value < 0 ? 0 : value < 255 ? Math.round(value) : 255;
-		}
 
 		const matrices = {
 			True: [
@@ -980,10 +1006,10 @@ tincture.prototype = {
 				rgbObj.a * matrix[18] +
 				matrix[19];
 			return {
-				r: getChannelValue(r),
-				g: getChannelValue(g),
-				b: getChannelValue(b),
-				a: getChannelValue(a)
+				r: this._correctRGBChannelValue(r),
+				g: this._correctRGBChannelValue(g),
+				b: this._correctRGBChannelValue(b),
+				a: this._correctRGBChannelValue(a)
 			};
 		}
 		this.isValid = false;
@@ -1009,11 +1035,15 @@ tincture.prototype = {
 				: 255 * (1.055 * Math.pow(value, 0.41666) - 0.055);
 		});
 
-		return { r: arr[0], g: arr[1], b: arr[2] };
+		return {
+			r: this._correctRGBChannelValue(arr[0]),
+			g: this._correctRGBChannelValue(arr[1]),
+			b: this._correctRGBChannelValue(arr[2])
+		};
 	},
 
 	_linearRGBToXYZ: function(rgbObj) {
-		let transformationMatrix = this.tMatrixRGB,
+		let transformationMatrix = this._tMatrixRGBToXYZ(),
 			rgbMatrix = [[rgbObj.r], [rgbObj.g], [rgbObj.b]],
 			xyzMatrix = this._multiplyMatrices(transformationMatrix, rgbMatrix);
 
@@ -1021,13 +1051,23 @@ tincture.prototype = {
 	},
 
 	_linearRGBToLMS: function(rgbObj) {
-		let mRGB = this.tMatrixRGB,
-			mHPE = this.tMatrixHPE,
-			transformationMatrix = this._multiplyMatrices(mHPE, mRGB),
+		let transformationMatrix = this._tMatrixRGBToLMS(),
 			rgbMatrix = [[rgbObj.r], [rgbObj.g], [rgbObj.b]],
 			lmsMatrix = this._multiplyMatrices(transformationMatrix, rgbMatrix);
 
 		return { l: lmsMatrix[0][0], m: lmsMatrix[1][0], s: lmsMatrix[2][0] };
+	},
+
+	_LMSToRGB: function(lmsObj) {
+		let transformationMatrix = this._tMatrixLMSToRGB(),
+			lmsMatrix = [[lmsObj.l], [lmsObj.m], [lmsObj.s]],
+			rgbMatrix = this._multiplyMatrices(transformationMatrix, lmsMatrix);
+
+		return this._applyGammaCorrection({
+			r: rgbMatrix[0][0],
+			g: rgbMatrix[1][0],
+			b: rgbMatrix[2][0]
+		});
 	},
 
 	_RGBToLMS: function(rgbObj) {
@@ -1038,7 +1078,7 @@ tincture.prototype = {
 	},
 
 	_XYZToLMS: function(xyzObj) {
-		let transformationMatrix = this.tMatrixHPE,
+		let transformationMatrix = this._tMatrixXYZToLMS(),
 			xyzMatrix = [[xyzObj.x], [xyzObj.y], [xyzObj.z]],
 			lmsMatrix = this._multiplyMatrices(transformationMatrix, xyzMatrix);
 
@@ -1057,17 +1097,103 @@ tincture.prototype = {
 		});
 	},
 
-	tMatrixRGB: [
-		[0.4124564, 0.3575761, 0.1804375],
-		[0.2126729, 0.7151522, 0.072175],
-		[0.0193339, 0.119192, 0.9503041]
-	],
+	_invertMatrix: function(matrix) {
+		// Thanks to Andrew Ippoliti (@ippo615) for this function
+		// http://blog.acipo.com/matrix-inversion-in-javascript/
 
-	tMatrixHPE: [
-		[0.4002, 0.7076, -0.0808],
-		[-0.2263, 1.1653, 0.0457],
-		[0, 0, 0.9182]
-	],
+		if (matrix.length !== matrix[0].length) {
+			return;
+		}
+		let i = (ii = j = e = t = 0);
+		let dim = matrix.length;
+		let I = [],
+			C = [];
+		for (i = 0; i < dim; i += 1) {
+			I[I.length] = [];
+			C[C.length] = [];
+			for (j = 0; j < dim; j += 1) {
+				if (i == j) {
+					I[i][j] = 1;
+				} else {
+					I[i][j] = 0;
+				}
+
+				C[i][j] = matrix[i][j];
+			}
+		}
+
+		for (i = 0; i < dim; i += 1) {
+			e = C[i][i];
+
+			if (e == 0) {
+				for (ii = i + 1; ii < dim; ii += 1) {
+					if (C[ii][i] != 0) {
+						for (j = 0; j < dim; j++) {
+							e = C[i][j];
+							C[i][j] = C[ii][j];
+							C[ii][j] = e;
+							e = I[i][j];
+							I[i][j] = I[ii][j];
+							I[ii][j] = e;
+						}
+
+						break;
+					}
+				}
+				e = C[i][i];
+				if (e == 0) {
+					return;
+				}
+			}
+
+			for (j = 0; j < dim; j++) {
+				C[i][j] = C[i][j] / e;
+				I[i][j] = I[i][j] / e;
+			}
+
+			for (ii = 0; ii < dim; ii++) {
+				if (ii == i) {
+					continue;
+				}
+
+				e = C[ii][i];
+
+				for (j = 0; j < dim; j++) {
+					C[ii][j] -= e * C[i][j];
+					I[ii][j] -= e * I[i][j];
+				}
+			}
+		}
+
+		return I;
+	},
+
+	_tMatrixRGBToXYZ: function() {
+		return [
+			[0.4124564, 0.3575761, 0.1804375],
+			[0.2126729, 0.7151522, 0.072175],
+			[0.0193339, 0.119192, 0.9503041]
+		];
+	},
+
+	_tMatrixXYZToLMS: function() {
+		return [
+			[0.4002, 0.7076, -0.0808],
+			[-0.2263, 1.1653, 0.0457],
+			[0, 0, 0.9182]
+		];
+	},
+
+	_tMatrixRGBToLMS: function() {
+		return this._multiplyMatrices(
+			this._tMatrixXYZToLMS(),
+			this._tMatrixRGBToXYZ()
+		);
+	},
+
+	_tMatrixLMSToRGB: function() {
+		return this._invertMatrix(this._tMatrixRGBToLMS());
+	},
 
 	_redToLMS: function() {
 		return this._linearRGBToLMS({ r: 1, g: 0, b: 0 });
@@ -1085,7 +1211,7 @@ tincture.prototype = {
 		return this._linearRGBToLMS({ r: 1, g: 1, b: 1 });
 	},
 
-	tMatrixProtanopia: function() {
+	_tMatrixProtanopia: function() {
 		let blue = this._blueToLMS(),
 			white = this._whiteToLMS(),
 			a =

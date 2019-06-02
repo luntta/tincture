@@ -454,25 +454,17 @@ customElements.define(
 						color.rgb
 					);
 
-					console.log("contrasts", contrastToWhite, contrastToBlack);
-
 					if (contrastToBlack >= contrastToWhite) {
 						color2 = black;
 					} else {
 						color2 = white;
 					}
 
-					console.log("color2", color2);
-
 					component
 						.querySelectorAll("tincture-card")
 						.forEach(function(element) {
 							element.dataset.color2 = color2.toRgbString();
 							element.dataset.color1 = color.toRgbString();
-							console.log(
-								"element.dataset.color2",
-								element.dataset.color2
-							);
 						});
 				}
 			});

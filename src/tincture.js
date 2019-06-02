@@ -44,7 +44,7 @@ function tincture(color, options) {
 			this.rgb = this._HSLAToRGBA(color, true);
 			break;
 		default:
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 	}
 
@@ -278,7 +278,7 @@ tincture.prototype = {
 			if (this.isHSLString(color) == true) return "HSL";
 			if (this.isHSLAString(color) == true) return "HSLA";
 		}
-		console.error("Invalid input color: " + color);
+		this.isValid = false;
 		return;
 	},
 
@@ -303,7 +303,7 @@ tincture.prototype = {
 				return "rgb(" + +r + "," + +g + "," + +b + ")";
 			}
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -314,7 +314,7 @@ tincture.prototype = {
 			color = this._HEXToRGB(color);
 			return this._RGBToHSL(color, returnObj);
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -347,7 +347,7 @@ tincture.prototype = {
 
 			return "rgba(" + +r + "," + +g + "," + +b + "," + a + ")";
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -358,7 +358,7 @@ tincture.prototype = {
 			color = this._HEXAToRGBA(color);
 			return this._RGBAToHSLA(color, returnObj);
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -427,7 +427,7 @@ tincture.prototype = {
 			}
 			return "rgb(" + r + "," + g + "," + b + ")";
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -437,7 +437,7 @@ tincture.prototype = {
 			color = this._HSLToRGB(color);
 			return this._RGBToHEX(color);
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -482,7 +482,7 @@ tincture.prototype = {
 			}
 			return "rgba(" + obj.r + "," + obj.g + "," + obj.b + "," + a + ")";
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -492,7 +492,7 @@ tincture.prototype = {
 			color = this._HSLAToRGBA(color);
 			return this._RGBAToHEXA(color);
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -523,7 +523,7 @@ tincture.prototype = {
 
 			return "#" + r + g + b;
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -582,7 +582,7 @@ tincture.prototype = {
 			}
 			return "hsl(" + h + "," + s + "%," + l + "%)";
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -620,7 +620,7 @@ tincture.prototype = {
 			if (a.length == 1) a = "0" + a;
 			return "#" + r + g + b + a;
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -688,7 +688,7 @@ tincture.prototype = {
 			}
 			return "hsl(" + h + "," + s + "%," + l + "%," + a + ")";
 		} else {
-			console.error("Invalid input color: " + color);
+			this.isValid = false;
 			return;
 		}
 	},
@@ -986,7 +986,122 @@ tincture.prototype = {
 				a: getChannelValue(a)
 			};
 		}
-		console.error("Invalid input color: " + color);
+		this.isValid = false;
 		return;
-	}
+	},
+
+	_removeGammaCorrection: function(rgbObj) {
+		rgbObj = rgbObj ? rgbObj : this.rgb;
+		let arr = [rgbObj.r, rgbObj.g, rgbObj.b].map(function(value) {
+			value /= 255;
+			return value <= 0.04045
+				? value / 12.92
+				: Math.pow((value + 0.055) / 1.055, 2.4);
+		});
+
+		return { r: arr[0], g: arr[1], b: arr[2] };
+	},
+
+	_applyGammaCorrection: function(rgbObj) {
+		let arr = [rgbObj.r, rgbObj.g, rgbObj.b].map(function(value) {
+			return value <= 0.0031308
+				? 255 * (value * 12.92)
+				: 255 * (1.055 * Math.pow(value, 0.41666) - 0.055);
+		});
+
+		return { r: arr[0], g: arr[1], b: arr[2] };
+	},
+
+	_linearRGBToXYZ: function(rgbObj) {
+		let transformationMatrix = this.tMatrixRGB,
+			rgbMatrix = [[rgbObj.r], [rgbObj.g], [rgbObj.b]],
+			xyzMatrix = this._multiplyMatrices(transformationMatrix, rgbMatrix);
+
+		return { x: xyzMatrix[0][0], y: xyzMatrix[1][0], z: xyzMatrix[2][0] };
+	},
+
+	_linearRGBToLMS: function(rgbObj) {
+		let mRGB = this.tMatrixRGB,
+			mHPE = this.tMatrixHPE,
+			transformationMatrix = this._multiplyMatrices(mHPE, mRGB),
+			rgbMatrix = [[rgbObj.r], [rgbObj.g], [rgbObj.b]],
+			lmsMatrix = this._multiplyMatrices(transformationMatrix, rgbMatrix);
+
+		return { l: lmsMatrix[0][0], m: lmsMatrix[1][0], s: lmsMatrix[2][0] };
+	},
+
+	_RGBToLMS: function(rgbObj) {
+		rgbObj = rgbObj ? rgbObj : this.rgb;
+		rgbObj = this._removeGammaCorrection();
+
+		return this._linearRGBToLMS(rgbObj);
+	},
+
+	_XYZToLMS: function(xyzObj) {
+		let transformationMatrix = this.tMatrixHPE,
+			xyzMatrix = [[xyzObj.x], [xyzObj.y], [xyzObj.z]],
+			lmsMatrix = this._multiplyMatrices(transformationMatrix, xyzMatrix);
+
+		return { l: lmsMatrix[0][0], m: lmsMatrix[1][0], s: lmsMatrix[2][0] };
+	},
+
+	_multiplyMatrices: function(mA, mB) {
+		var result = new Array(mA.length)
+			.fill(0)
+			.map(row => new Array(mB[0].length).fill(0));
+
+		return result.map((row, i) => {
+			return row.map((val, j) => {
+				return mA[i].reduce((a, b, c) => a + b * mB[c][j], 0);
+			});
+		});
+	},
+
+	tMatrixRGB: [
+		[0.4124564, 0.3575761, 0.1804375],
+		[0.2126729, 0.7151522, 0.072175],
+		[0.0193339, 0.119192, 0.9503041]
+	],
+
+	tMatrixHPE: [
+		[0.4002, 0.7076, -0.0808],
+		[-0.2263, 1.1653, 0.0457],
+		[0, 0, 0.9182]
+	],
+
+	_redToLMS: function() {
+		return this._linearRGBToLMS({ r: 1, g: 0, b: 0 });
+	},
+
+	_greenToLMS: function() {
+		return this._linearRGBToLMS({ r: 0, g: 1, b: 0 });
+	},
+
+	_blueToLMS: function() {
+		return this._linearRGBToLMS({ r: 0, g: 0, b: 1 });
+	},
+
+	_whiteToLMS: function() {
+		return this._linearRGBToLMS({ r: 1, g: 1, b: 1 });
+	},
+
+	tMatrixProtanopia: function() {
+		let blue = this._blueToLMS(),
+			white = this._whiteToLMS(),
+			a =
+				(blue.l * white.s - white.l * blue.s) /
+				(blue.m * white.s - white.m * blue.s),
+			b =
+				(blue.l * white.m - white.l * blue.m) /
+				(blue.s * white.m - white.s * blue.m);
+		if (
+			blue.l == a * blue.m + b * blue.s &&
+			white.l == a * white.m + b * white.s
+		) {
+			return [[0, a, b], [0, 1, 0], [0, 0, 1]];
+		}
+	},
+
+	tMatrixDeuteranopia: [[1, 0, 0], [0.9513092, 0, 0.04866992], [0, 0, 1]],
+	tMatrixTritanopia: [[1, 0, 0], [0, 1, 0], [-0.86744736, 1.86727089, 0]]
 };

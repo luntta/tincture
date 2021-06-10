@@ -1,0 +1,22 @@
+{
+  "name": "tincturelib",
+  "version": "1.0.0",
+  "description": "A multi purpose color library.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"No test specified\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luntta/tincture.git"
+  },
+  "author": "Raine Luntta",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/luntta/tincture/issues"
+  },
+  "homepage": "https://github.com/luntta/tincture#readme"
+}

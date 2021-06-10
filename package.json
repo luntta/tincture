@@ -1,6 +1,6 @@
 {
   "name": "tincturelib",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A multi purpose color library.",
   "main": "index.js",
   "directories": {
